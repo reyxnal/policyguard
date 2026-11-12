@@ -1,0 +1,21 @@
+# Rust build output (any level: contract/target/)
+target/
+**/*.rs.bk
+
+# NOTE: contract/Cargo.lock is intentionally COMMITTED — it pins near-sdk
+# 5.30.1 so judges/AI screening reproduce the exact build (Q-017).
+
+# Node
+node_modules/
+
+# NEAR CLI / deploy artifacts
+neardev/
+*.wasm
+
+# Secrets — never commit keys
+.env
+*.json.key
+credentials/
+
+# Internal prep doc — working notes for the team, NOT part of the public repo
+PREP.md

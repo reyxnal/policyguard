@@ -1,0 +1,27 @@
+[package]
+name = "policy-guard"
+version = "0.1.0"
+edition = "2021"
+description = "On-chain counterparty + policy check for AI agents that pay (NEAR HACKATHON, security track)"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "5"
+# Direct dependency required by the Borsh derive macros (they resolve the
+# `borsh` crate from this manifest, not through near-sdk's re-export).
+borsh = "1"
+
+# near-sdk refuses host compilation unless the unit-testing feature is on
+# for test builds (its lib.rs compile_error gate). Cargo unifies features,
+# so this only affects `cargo test`, never the wasm contract build.
+[dev-dependencies]
+near-sdk = { version = "5", features = ["unit-testing"] }
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"

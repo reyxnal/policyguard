@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PolicyGuard — counterparty &amp; policy check for AI agents that pay (NEAR)</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --text:#e6edf3; --dim:#8b949e;
+         --allow:#3fb950; --warn:#d29922; --block:#f85149; --accent:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 0 0 10px; }
+  p.sub { color: var(--dim); margin: 0 0 20px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  label { display:block; font-size:.85rem; color:var(--dim); margin: 8px 0 4px; }
+  input, select, textarea { width:100%; padding:8px; border-radius:6px; border:1px solid var(--line); background:#0d1117; color:var(--text); font: inherit; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  button { margin-top: 12px; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--line); background:#21262d; color:var(--text); font: inherit; cursor: pointer; }
+  button.primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
+  button.danger { background:#3a1518; border-color:#f85149; color:#ffb4ae; }
+  button:hover { filter: brightness(1.15); }
+  .verdict { margin-top:12px; padding:12px; border-radius:8px; border:1px solid var(--line); display:none; }
+  .verdict.allow { display:block; border-color:var(--allow); }
+  .verdict.warn { display:block; border-color:var(--warn); }
+  .verdict.block { display:block; border-color:var(--block); }
+  .verdict b { text-transform: uppercase; letter-spacing: .04em; }
+  .verdict.allow b { color: var(--allow); } .verdict.warn b { color: var(--warn); } .verdict.block b { color: var(--block); }
+  table { width:100%; border-collapse: collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color: var(--dim); font-weight: 600; }
+  code { background:#0d1117; padding:1px 5px; border-radius:4px; font-size:.88em; }
+  pre { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:12px; overflow:auto; font-size:.85rem; white-space:pre-wrap; }
+  .hint { color: var(--dim); font-size:.88rem; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; border:1px solid var(--line); font-size:.8rem; color:var(--dim); }
+  #boot-warning { display:none; background:#3a2a12; border:1px solid var(--warn); border-radius:8px; padding:12px; margin-bottom:16px; }
+  footer { color: var(--dim); font-size:.88rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>PolicyGuard</h1>
+  <p class="sub">An on-chain counterparty &amp; policy check for AI agents that pay — built for
+    <a href="https://nearhackathon.com">NEAR HACKATHON</a> (Security track).
+    Before an agent sends funds, it asks: <b>allow, warn, or block?</b> — and why.
+    <span class="pill">NEAR testnet</span> <span class="pill">no wallet needed for this demo</span></p>
+
+  <div id="boot-warning">This page needs to be served over HTTP(S) for its modules to load
+    (opening it as a <code>file://</code> URL blocks them). Serve this folder, e.g.
+    <code>python3 -m http.server</code> in the repository root, then open
+    <code>http://localhost:8000/demo/</code> — or use the hosted demo linked in the README.</div>
+
+  <section>
+    <h2>1 · Try a payment</h2>
+    <p class="hint">The check runs the same rules the smart contract enforces (see <code>shared/policy.mjs</code>).
+      On <b>warn</b>, the browser asks you — the human — to approve or deny. On <b>block</b>, nothing is signed.</p>
+    <div class="row">
+      <div><label for="receiver">Receiver (NEAR account)</label>
+        <input id="receiver" value="drainer-evil.near" spellcheck="false"></div>
+      <div><label for="amount">Amount (NEAR)</label>
+        <input id="amount" value="50" spellcheck="false"></div>
+    </div>
+    <div class="row">
+      <div><label for="method">Method</label>
+        <input id="method" value="transfer" spellcheck="false"></div>
+      <div><label for="agent">Agent account</label>
+        <input id="agent" value="agent-demo.testnet" spellcheck="false"></div>
+    </div>
+    <button class="primary" id="check-btn">Check &amp; pay through the guard</button>
+    <button id="reset-btn">Reset demo</button>
+    <div class="verdict" id="verdict"></div>
+  </section>
+
+  <section>
+    <h2>2 · Agent policy</h2>
+    <div class="row3">
+      <div><label for="cap-tx">Per-transaction cap (NEAR)</label><input id="cap-tx" value="5"></div>
+      <div><label for="cap-day">Daily cap (NEAR)</label><input id="cap-day" value="20"></div>
+      <div><label for="human-above">Human approval above (NEAR)</label><input id="human-above" value="2"></div>
+    </div>
+    <div class="row">
+      <div><label for="methods">Allowed methods (comma-separated, empty = any)</label><input id="methods" value="" placeholder="transfer, ft_transfer"></div>
+      <div><label for="receivers">Allowed receivers (comma-separated, empty = any)</label><input id="receivers" value="" placeholder="alice.near, carol.near"></div>
+    </div>
+    <p class="hint">Spent today (this demo session): <b id="spent">0 NEAR</b> · applies on the next check.</p>
+  </section>
+
+  <section>
+    <h2>3 · Shared blocklist</h2>
+    <p class="hint">Reports carry evidence. On chain, anyone can report; the owner can remove entries (appeals).</p>
+    <table id="blocklist-table"><thead><tr><th>Account</th><th>Reason</th><th>Evidence</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="row3">
+      <div><label for="rep-account">Account to report</label><input id="rep-account" placeholder="scam.near"></div>
+      <div><label for="rep-reason">Reason</label><input id="rep-reason" placeholder="drainer"></div>
+      <div><label for="rep-evidence">Evidence (tx hash / link)</label><input id="rep-evidence" placeholder="tx …"></div>
+    </div>
+    <button id="report-btn">Report counterparty</button>
+  </section>
+
+  <section>
+    <h2>4 · Allowlist</h2>
+    <p class="hint">Allowlisted counterparties skip the first-interaction warning.</p>
+    <table id="allowlist-table"><thead><tr><th>Account</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="row">
+      <div><label for="allow-account">Account to allowlist</label><input id="allow-account" placeholder="alice.near"></div>
+      <div><label>&nbsp;</label><button id="allow-btn" style="margin-top:0">Add to allowlist</button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Prompt-injection attack simulation</h2>
+    <p class="hint">Runs the canned attack from <code>agent/src/attack-demo.mjs</code> in this page:
+      an injected instruction tries to pay a blocklisted drainer, a legit payment goes through,
+      and a warn case asks the human. Nothing here signs anything real.</p>
+    <button class="danger" id="attack-btn">Run attack simulation</button>
+    <pre id="attack-log" style="display:none"></pre>
+  </section>
+
+  <section>
+    <h2>6 · Decision log (this session)</h2>
+    <table id="log-table"><thead><tr><th>Time</th><th>Verdict</th><th>Payment</th><th>Reasons</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <section>
+    <h2>7 · Live contract on NEAR testnet</h2>
+    <p class="hint">Read-only view calls over public RPC — no wallet, no signing. Enter the deployed
+      contract account to see its real policy state and decision log.</p>
+    <div class="row">
+      <div><label for="contract-id">Contract account id</label>
+        <input id="contract-id" placeholder="policy-guard.testnet" spellcheck="false"></div>
+      <div><label>&nbsp;</label><button id="query-btn" style="margin-top:0">Query testnet</button></div>
+    </div>
+    <pre id="live-out" style="display:none"></pre>
+    <p class="hint" id="live-hint">Not deployed yet in this scaffold: the deploy steps are in the README
+      (testnet account + free faucet + <code>cargo near deploy</code>). Until then, sections 1–6 run the
+      identical rules locally.</p>
+  </section>
+
+  <footer>
+    <p><b>Do X — see Y:</b> (1) leave the defaults and press “Check &amp; pay” → <b>BLOCK</b>: the receiver is
+      blocklisted and 50 NEAR exceeds the cap. (2) Change the receiver to <code>alice.near</code> and the amount to
+      <code>1</code> → <b>ALLOW</b>. (3) Try <code>bob.near</code> / <code>3</code> → <b>WARN</b>: the browser asks
+      you to approve. (4) Run the attack simulation → the injection is stopped before any signature.</p>
+    <p>Rules: <code>shared/policy.mjs</code> = <code>contract/src/policy.rs</code> · Contract: Rust / near-sdk ·
+      Wrapper: <code>agent/src/guard.mjs</code> · Repo README has the full story, including the limits of
+      function-call keys and the data sources behind each signal.</p>
+  </footer>
+</main>
+<script>
+  setTimeout(function () {
+    if (!window.__policyGuardBooted) document.getElementById("boot-warning").style.display = "block";
+  }, 1500);
+</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

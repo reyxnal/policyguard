@@ -1,0 +1,1 @@
+{"description":"Agent-side guard wrapper + demos for PolicyGuard (NEAR HACKATHON, security track)","engines":{"node":">=18"},"name":"policy-guard-agent","private":true,"scripts":{"demo:attack":"node agent/src/attack-demo.mjs","demo:scenarios":"node scripts/scenarios.mjs","test":"node --test agent/test/guard.test.mjs"},"type":"module","version":"0.1.0"}

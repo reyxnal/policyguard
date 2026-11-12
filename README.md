@@ -4,7 +4,7 @@
 
 **Track:** `security` (AI Security & Defense) — also fits `agents`.
 **Built for:** [NEAR HACKATHON: Build Beyond Boundaries](https://nearhackathon.com) (1–14 Nov 2026).
-**Status:** scaffold + working prototype. Contract unit tests green, demo runs locally and hosted.
+**Status:** working prototype. Contract unit tests green, contract deployed to NEAR testnet, demo runs locally and hosted.
 
 ## The problem
 
@@ -153,8 +153,14 @@ near account create-account sponsor-by-faucet-service <sub>.testnet autogenerate
 #    -- or use an existing testnet account; then:
 cargo near deploy <ACCOUNT> --manifest-path contract/Cargo.toml \
   --init-function new --init-args '{"owner":"<OWNER_ACCOUNT>"}'
-# 4. Put the contract account id in the demo (section 7) and in PREP.md.
+# 4. Put the contract account id in the demo (section 7).
 ```
+
+**Live deployment (12 Nov 2026):** `policyguard-okdes.testnet` on NEAR
+testnet — [explorer](https://testnet.nearblocks.io/address/policyguard-okdes.testnet)
+· [deploy tx](https://testnet.nearblocks.io/txns/HJns2j3vpv5S4RFWwp2RcyP9fmtoCPuU7ZbsNfVUkXnR).
+The demo's section 7 is pre-wired to this contract. Seeded demo state: one
+blocklist report + one recorded `block` decision (both labeled as demo data).
 
 No mainnet deployment is needed for this hackathon (Q-010). Never deploy to
 mainnet or spend real tokens without the team lead's explicit confirmation.
